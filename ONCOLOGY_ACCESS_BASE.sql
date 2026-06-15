@@ -1,0 +1,164 @@
+CREATE OR REPLACE TABLE ONCOLOGY_ACCESS_BASE AS
+WITH raw_patient_data AS (
+    SELECT
+        
+        a.DEPT_SPECIALTY_NAME,
+        a.PROV_ID AS EPIC_PROVIDER_ID,
+        a.REFERRING_PROV_NAME_WID,
+        a.MRN,
+        a.PAT_NAME AS PATIENT_NAME,
+        a.ZIP_CODE,
+        CAST(CAST(a.PAT_ENC_CSN_ID AS BIGINT) AS STRING) AS PAT_ENC_CSN_ID, 
+        a.BIRTH_DATE,
+        a.FINCLASS AS COVERAGE,
+        a.APPT_MADE_DTTM,
+        a.APPT_DTTM,
+        a.PRC_NAME AS APPT_TYPE,
+        a.APPT_LENGTH AS APPT_DUR,
+        a.DERIVED_STATUS_DESC AS APPT_STATUS,
+        a.APPT_CANC_DTTM,
+        a.CANCEL_REASON_NAME AS CANCEL_REASON,
+        a.SIGNIN_DTTM,
+        a.PAGED_DTTM,
+        a.CHECKIN_DTTM,
+        a.ARVL_LIST_REMOVE_DTTM AS ARRIVAL_REMOVE_DTTM,
+        a.ROOMED_DTTM,
+        a.FIRST_ROOM_ASSIGN_DTTM AS ROOM_ASSIGNED_DTTM,
+        a.PHYS_ENTER_DTTM AS PROVIDERIN_DTTM,
+        a.VISIT_END_DTTM,
+        a.CHECKOUT_DTTM,
+        a.TIME_IN_ROOM_MINUTES,
+        a.CYCLE_TIME_MINUTES,
+        a.VISIT_GROUP_NUM AS NEW_PT,
+        a.LOS_NAME AS CLASS_PT,
+        a.APPT_ENTRY_USER_NAME_WID AS APPT_SOURCE,
+        a.ACCESS_CENTER_SCHEDULED_YN AS ACCESS_CENTER,
+        a.VISIT_METHOD,
+        a.VISIT_PROV_STAFF_RESOURCE_C AS RESOURCES,
+        a.PRIMARY_DX_CODE,
+        a.REFERRING_PROV_ID,
+        a.PAT_ID,
+        a.LOS_CODE,
+
+        CAST(EXTRACT(YEAR FROM a.APPT_DTTM) AS STRING) AS Appt_Year,
+        EXTRACT(DAYOFWEEK FROM a.APPT_DTTM) AS APPT_DAY,
+        EXTRACT(MONTH FROM a.APPT_DTTM) AS Appt_Month,
+        CAST(EXTRACT(YEAR FROM a.APPT_DTTM) AS STRING) || '-' || CAST(EXTRACT(MONTH FROM a.APPT_DTTM) AS STRING) AS Appt_Month_Year,
+        TO_DATE(a.APPT_DTTM) AS Appt_Date_Year,
+        DATEDIFF(a.APPT_DTTM, a.APPT_MADE_DTTM) AS Wait_Time,
+        TO_DATE(a.APPT_MADE_DTTM) AS APPT_MADE_DATE_YEAR,
+        CAST(EXTRACT(YEAR FROM a.APPT_MADE_DTTM) AS STRING) || '-' || CAST(EXTRACT(MONTH FROM a.APPT_MADE_DTTM) AS STRING) AS Appt_Made_Month_Year,
+
+        REGEXP_SUBSTR(a.PRC_NAME, 'NEW') AS NEW_PT_SCHEDULED,
+        REGEXP_SUBSTR(a.LOS_NAME, 'NEW') AS NEW_PT_ARRIVED_RAW,
+
+        b.DEPARTMENT_NAME AS DEPT_NAME_DNU,
+        b.DEPARTMENT_ID,
+        b.SITE,
+
+        c.ASSOCIATIONLISTA,
+        c.ASSOCIATIONLISTB,
+        c.ASSOCIATIONLISTT,
+
+        d.DISEASE_GROUP,
+        d.DISEASE_GROUP_B AS DISEASE_GROUP_DETAIL,
+        d.PROVIDER_TYPE,
+
+        e.DESCRIPTION AS DX_DETAIL,
+        REPLACE(e.DEFINITION, 'Oncology-', '') AS DX_GROUPER,
+
+        i.RACE,
+        i.MYCHART_STATUS,
+
+        z.ETHNIC_BACKGROUND,
+
+        TRIM(TRAILING FROM REGEXP_REPLACE(a.PROV_NAME_WID, :reg_exp, '')) AS PROVIDER,
+        TRIM(TRAILING FROM REGEXP_REPLACE(a.REFERRING_PROV_NAME_WID, :reg_exp, '')) AS REFERRING_PROVIDER
+
+    FROM datahub_dev_bronze.datahub_clarity.mv_dm_patient_access a
+
+    INNER JOIN ONCOLOGY_DEPARTMENT_GROUPINGS b
+        ON a.DEPARTMENT_ID = b.DEPARTMENT_ID
+
+    LEFT JOIN ONCOLOGY_PRC_GROUPINGS c
+        ON a.PRC_NAME = c.PRC_NAME
+
+    LEFT JOIN ONCOLOGY_DISEASE_GROUPINGS d
+        ON a.PROV_ID = d.EPIC_PROVIDER_ID
+
+    LEFT JOIN VIZIENT_CANCER_GROUPER e
+        ON a.PRIMARY_DX_CODE = e.EPIC_ICD10_CODE
+
+    LEFT JOIN MV_PATIENT_SELECT_DEMOGRAPHICS i
+        ON a.PAT_ID = i.PAT_ID
+
+    LEFT JOIN ONCOLOGY_ETHNIC_BACKGROUND z
+        ON a.PAT_ID = z.PAT_ID
+
+    LEFT JOIN ONCOLOGY_LOS_EXCLUSIONS f
+        ON a.LOS_CODE = f.LOS_CODE
+
+    WHERE f.LOS_CODE IS NULL
+      AND (
+            a.CONTACT_DATE BETWEEN TO_DATE(:date_1 || ' 00:00:00', 'yyyy-MM-dd HH:mm:ss')
+                               AND TO_DATE(current_date() || ' 23:59:59', 'yyyy-MM-dd HH:mm:ss')
+         OR a.APPT_MADE_DTTM BETWEEN TO_DATE(:date_1 || ' 00:00:00', 'yyyy-MM-dd HH:mm:ss')
+                                 AND TO_DATE(current_date() || ' 23:59:59', 'yyyy-MM-dd HH:mm:ss')
+      )
+),
+
+deduplicated_data AS (
+    SELECT
+        rd.*,
+
+        j.RACE_GROUPER,
+        j.RACE_GROUPER_DETAIL,
+
+        p.MYCHART_STATUS_GROUPER,
+
+        m.ETHNICITY_GROUPER,
+
+        ROW_NUMBER() OVER (
+            PARTITION BY
+                rd.MRN,
+                rd.APPT_DTTM,
+                rd.APPT_TYPE,
+                rd.EPIC_PROVIDER_ID,
+                rd.APPT_STATUS
+            ORDER BY
+                rd.MRN,
+                rd.APPT_DTTM,
+                rd.APPT_TYPE,
+                rd.EPIC_PROVIDER_ID,
+                rd.APPT_STATUS
+        ) AS ROW_COUNTS
+
+    FROM raw_patient_data rd
+
+    LEFT JOIN ONCOLOGY_RACE_GROUPER j
+        ON LOWER(rd.RACE) = LOWER(j.RACE)
+
+    LEFT JOIN ONCOLOGY_MYCHART_STATUS_GROUPER p
+        ON LOWER(rd.MYCHART_STATUS) = LOWER(p.MYCHART_STATUS)
+
+    LEFT JOIN ONCOLOGY_ETHNICITY_GROUPER m
+        ON LOWER(rd.ETHNIC_BACKGROUND) = LOWER(m.ETHNIC_BACKGROUND)
+)
+
+SELECT
+    CASE
+        WHEN h.DEPT_NAME_DNU LIKE 'X_%'
+         AND h.APPT_DTTM >= TO_DATE('2024-01-01', 'yyyy-MM-dd')
+         AND h.APPT_DTTM <  TO_DATE('2025-01-01', 'yyyy-MM-dd')
+            THEN REGEXP_REPLACE(h.DEPT_NAME_DNU, '^[X_]{2}', 'X_2024_')
+        ELSE h.DEPT_NAME_DNU
+    END AS DEPARTMENT_NAME,
+
+    h.*,
+
+    NVL(h.NEW_PT_ARRIVED_RAW, 'ESTABLISHED') AS NEW_PT_ARRIVED,
+
+    COUNT(*) OVER () AS TOTAL_ROWS
+
+FROM deduplicated_data h
+WHERE h.ROW_COUNTS = 1;
