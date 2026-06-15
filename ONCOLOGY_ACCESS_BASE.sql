@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE ONCOLOGY_ACCESS_BASE AS
+CREATE OR REPLACE TABLE opsanalytics_adb_workspace01.oncology.oncology_access_base AS
 WITH raw_patient_data AS (
     SELECT
         
@@ -77,25 +77,25 @@ WITH raw_patient_data AS (
 
     FROM datahub_dev_bronze.datahub_clarity.mv_dm_patient_access a
 
-    INNER JOIN ONCOLOGY_DEPARTMENT_GROUPINGS b
+    INNER JOIN opsanalytics_adb_workspace01.oncology.oncology_department_groupings b
         ON a.DEPARTMENT_ID = b.DEPARTMENT_ID
 
-    LEFT JOIN ONCOLOGY_PRC_GROUPINGS c
+    LEFT JOIN opsanalytics_adb_workspace01.oncology.oncology_prc_groupings c
         ON a.PRC_NAME = c.PRC_NAME
 
-    LEFT JOIN ONCOLOGY_DISEASE_GROUPINGS d
+    LEFT JOIN opsanalytics_adb_workspace01.oncology.oncology_disease_groupings d
         ON a.PROV_ID = d.EPIC_PROVIDER_ID
 
-    LEFT JOIN VIZIENT_CANCER_GROUPER e
+    LEFT JOIN opsanalytics_adb_workspace01.oncology.vizient_cancer_grouper e
         ON a.PRIMARY_DX_CODE = e.EPIC_ICD10_CODE
 
-    LEFT JOIN MV_PATIENT_SELECT_DEMOGRAPHICS i
+    LEFT JOIN opsanalytics_adb_workspace01.oncology.mv_patient_select_demographics i
         ON a.PAT_ID = i.PAT_ID
 
-    LEFT JOIN ONCOLOGY_ETHNIC_BACKGROUND z
+    LEFT JOIN opsanalytics_adb_workspace01.oncology.oncology_ethnic_background z
         ON a.PAT_ID = z.PAT_ID
 
-    LEFT JOIN ONCOLOGY_LOS_EXCLUSIONS f
+    LEFT JOIN opsanalytics_adb_workspace01.oncology.oncology_los_exclusions f
         ON a.LOS_CODE = f.LOS_CODE
 
     WHERE f.LOS_CODE IS NULL
@@ -135,13 +135,13 @@ deduplicated_data AS (
 
     FROM raw_patient_data rd
 
-    LEFT JOIN ONCOLOGY_RACE_GROUPER j
+    LEFT JOIN opsanalytics_adb_workspace01.oncology.oncology_race_grouper j
         ON LOWER(rd.RACE) = LOWER(j.RACE)
 
-    LEFT JOIN ONCOLOGY_MYCHART_STATUS_GROUPER p
+    LEFT JOIN opsanalytics_adb_workspace01.oncology.oncology_mychart_status_grouper p
         ON LOWER(rd.MYCHART_STATUS) = LOWER(p.MYCHART_STATUS)
 
-    LEFT JOIN ONCOLOGY_ETHNICITY_GROUPER m
+    LEFT JOIN opsanalytics_adb_workspace01.oncology.oncology_ethnicity_grouper m
         ON LOWER(rd.ETHNIC_BACKGROUND) = LOWER(m.ETHNIC_BACKGROUND)
 )
 

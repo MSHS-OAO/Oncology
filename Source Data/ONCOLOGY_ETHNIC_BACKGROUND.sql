@@ -1,4 +1,4 @@
-create or replace table ONCOLOGY_ETHNIC_BACKGROUND as
+create or replace table opsanalytics_adb_workspace01.oncology.oncology_ethnic_background as
 SELECT
   eb.PAT_ID,
   LISTAGG(zceb.NAME, '; ') WITHIN GROUP (ORDER BY eb.PAT_ID) as ETHNIC_BACKGROUND
