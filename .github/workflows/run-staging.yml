@@ -1,0 +1,37 @@
+name: Run Oncology Data Pull - Staging
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - staging
+    paths:
+      - "oncology_dbt/**"
+      - ".github/workflows/run-staging.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oncology-data-pull-staging
+  cancel-in-progress: false
+
+jobs:
+  run-staging:
+    name: Run Oncology Data Pull - Staging
+    runs-on: ubuntu-latest
+    environment: staging
+
+    env:
+      DATABRICKS_AUTH_TYPE: oauth-m2m
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      DATABRICKS_JOB_ID: ${{ vars.DATABRICKS_JOB_ID }}
+
+    steps:
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Run staging job and wait for completion
+        run: databricks jobs run-now "$DATABRICKS_JOB_ID"
