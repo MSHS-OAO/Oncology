@@ -7,7 +7,7 @@ with access_base as (
 
 active_mrn as (
     select *
-    from {{ source('oncology', 'mapping_active_mrn') }}
+    from {{ ref('mapping_active_mrn') }}
 ),
 
 final as (

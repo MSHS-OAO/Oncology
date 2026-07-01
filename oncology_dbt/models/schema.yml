@@ -24,8 +24,6 @@ sources:
         description: 'mapping file to link ICD10 codes to their oncology type'
       - name: mapping_mv_patient_select_demographics
         description: 'mapping table for all patient demographics'
-      - name: mapping_active_mrn
-        description: 'mapping table for all active mrns in patient population'
       - name: mapping_ethnic_background
         description: 'mapping table for all ethinc backgrounds of patients'
   
@@ -44,6 +42,9 @@ models:
   - name: oncology_access_silver
     description: 'Final oncology access base table converted from ONCOLOGY_ACCESS_BASE.sql.'
 
+  - name: mapping_active_mrn
+    description: 'Distinct MRNs with an arrived treatment appointment during the rolling three-month activity window.'
+
   - name: oncology_access_gold
-    description: 'Final oncology access table downstream of oncology_access_base with active MRN mapping and department/provider inclusion rules.'
+    description: 'Final oncology access table downstream of oncology_access_silver with active MRN mapping and department/provider inclusion rules.'
     
