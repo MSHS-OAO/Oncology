@@ -38,12 +38,12 @@ sources:
         description: 'raw table containing ambulatory visits for entire system'
 
 models:
-  - name: oncology_access_raw
+  - name: oncology_access_bronze
     description: 'Appointment-level oncology access source and mapping joins with only the columns needed downstream; no formatting or filtering.'
 
-  - name: oncology_access_base
+  - name: oncology_access_silver
     description: 'Final oncology access base table converted from ONCOLOGY_ACCESS_BASE.sql.'
 
-  - name: oncology_access
+  - name: oncology_access_gold
     description: 'Final oncology access table downstream of oncology_access_base with active MRN mapping and department/provider inclusion rules.'
     

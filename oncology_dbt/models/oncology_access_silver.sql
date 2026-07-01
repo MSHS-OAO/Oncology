@@ -36,7 +36,7 @@ with formatted_access as (
         primary_dx_code,
         referring_prov_id,
         pat_id,
-        los_code,
+        excluded_los_code,
 
         cast(extract(year from appt_dttm) as string) as appt_year,
         extract(dayofweek from appt_dttm) as appt_day,
@@ -105,7 +105,7 @@ with formatted_access as (
                 derived_status_desc
         ) as row_counts
 
-    from {{ ref('oncology_access_raw') }}
+    from {{ ref('oncology_access_bronze') }}
     where excluded_los_code is null
       and (
           to_date(contact_date) between to_date('{{ var("oncology_access_start_date", "2019-01-01") }}', 'yyyy-MM-dd') and current_date()

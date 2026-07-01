@@ -2,7 +2,7 @@
 
 with access_base as (
     select *
-    from {{ ref('oncology_access_base') }}
+    from {{ ref('oncology_access_silver') }}
 ),
 
 active_mrn as (

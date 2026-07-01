@@ -32,7 +32,6 @@ clean-targets:         # directories to be removed by `dbt clean`
 models:
   oncology_dbt:
     +materialized: view
-    +schema: staging
 
 vars:
   oncology_access_start_date: '2019-01-01'
