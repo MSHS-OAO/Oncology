@@ -1,0 +1,31 @@
+name: Test Databricks authentication
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - staging
+    paths:
+      - ".github/workflows/test-databricks-auth.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test-auth:
+    name: Test staging authentication
+    runs-on: ubuntu-latest
+    environment: staging
+
+    env:
+      DATABRICKS_AUTH_TYPE: oauth-m2m
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+
+    steps:
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Verify Databricks identity
+        run: databricks current-user me
