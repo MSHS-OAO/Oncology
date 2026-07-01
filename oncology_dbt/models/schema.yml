@@ -8,24 +8,64 @@ sources:
     tables:
       - name: mapping_department
         description: 'mapping file to link epic IDs to department names and sites'
+        columns:
+          - name: department_id
+            data_tests:
+              - unique
       - name: mapping_disease
         description: 'mapping file to link providers to their disease group type'
+        columns:
+          - name: epic_provider_id
+            data_tests:
+              - unique
       - name: mapping_ethnicity
         description: 'mapping file to link ethnic background to ethnic group'
+        data_tests:
+          - unique:
+              arguments:
+                column_name: "lower(ethnic_background)"
       - name: mapping_los_exclusions
         description: 'mapping file containing los codes to exclude'
+        columns:
+          - name: los_code
+            data_tests:
+              - unique
       - name: mapping_mychart_status
         description: 'mapping file to determine whether mychart status is active or not'
+        data_tests:
+          - unique:
+              arguments:
+                column_name: "lower(mychart_status)"
       - name: mapping_procedure
         description: 'mapping file to group procedures into categories used for filtering'
+        columns:
+          - name: prc_name
+            data_tests:
+              - unique
       - name: mapping_race
         description: 'mapping file used to categorize race for filtering'
+        data_tests:
+          - unique:
+              arguments:
+                column_name: "lower(race)"
       - name: mapping_vizient_icd10
         description: 'mapping file to link ICD10 codes to their oncology type'
+        columns:
+          - name: epic_icd10_code
+            data_tests:
+              - unique
       - name: mapping_mv_patient_select_demographics
         description: 'mapping table for all patient demographics'
+        columns:
+          - name: pat_id
+            data_tests:
+              - unique
       - name: mapping_ethnic_background
         description: 'mapping table for all ethinc backgrounds of patients'
+        columns:
+          - name: pat_id
+            data_tests:
+              - unique
   
   - name: msx_clarity
     description: 'source for all MSX Clarity tables owned by DTP'
@@ -36,15 +76,26 @@ sources:
         description: 'raw table containing ambulatory visits for entire system'
 
 models:
+  - name: mapping_active_mrn
+    description: 'Distinct MRNs with an arrived treatment appointment during the rolling three-month activity window.'
+  
   - name: oncology_access_bronze
     description: 'Appointment-level oncology access source and mapping joins with only the columns needed downstream; no formatting or filtering.'
 
   - name: oncology_access_silver
     description: 'Final oncology access base table converted from ONCOLOGY_ACCESS_BASE.sql.'
-
-  - name: mapping_active_mrn
-    description: 'Distinct MRNs with an arrived treatment appointment during the rolling three-month activity window.'
-
+    columns:
+      - name: pat_enc_csn_id
+        description: 'Unique appointment encounter identifier defining the grain of this model.'
+        data_tests:
+          - unique
+          - not_null
+          
   - name: oncology_access_gold
     description: 'Final oncology access table downstream of oncology_access_silver with active MRN mapping and department/provider inclusion rules.'
-    
+    columns:
+      - name: pat_enc_csn_id
+        description: 'Unique appointment encounter identifier defining the grain of this model.'
+        data_tests:
+          - unique
+          - not_null
