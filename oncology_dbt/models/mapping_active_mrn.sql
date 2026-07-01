@@ -1,6 +1,5 @@
 {{ config(
-    materialized='table',
-    schema='oncology'
+    materialized='table'
 ) }}
 
 with active_mrns as (
