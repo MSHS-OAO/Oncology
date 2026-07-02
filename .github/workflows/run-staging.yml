@@ -31,4 +31,14 @@ jobs:
         uses: databricks/setup-cli@main
 
       - name: Run staging job and wait for completion
-        run: databricks jobs run-now "$DATABRICKS_JOB_ID"
+        run: |
+          REQUEST=$(jq -n \
+            --arg github_run_id "$GITHUB_RUN_ID" \
+            '{
+              job_parameters: {
+                trigger_source: "github",
+                github_run_id: $github_run_id
+              }
+            }')
+
+          databricks jobs run-now "$DATABRICKS_JOB_ID" --json "$REQUEST"
