@@ -60,12 +60,6 @@ sources:
           - name: pat_id
             data_tests:
               - unique
-      - name: mapping_ethnic_background
-        description: 'mapping table for all ethinc backgrounds of patients'
-        columns:
-          - name: pat_id
-            data_tests:
-              - unique
   
   - name: msx_clarity
     description: 'source for all MSX Clarity tables owned by DTP'
@@ -74,10 +68,21 @@ sources:
     tables:
       - name: mv_dm_patient_access
         description: 'raw table containing ambulatory visits for entire system'
+      - name: ethnic_background
+        description: 'raw table containing patient ethnic background codes'
+      - name: zc_ethnic_bkgrnd
+        description: 'raw lookup table for ethnic background code names'
 
 models:
   - name: mapping_active_mrn
     description: 'Distinct MRNs with an arrived treatment appointment during the rolling three-month activity window.'
+
+  - name: mapping_ethnic_background
+    description: 'Mapping table for all ethnic backgrounds of patients.'
+    columns:
+      - name: pat_id
+        data_tests:
+          - unique
   
   - name: oncology_access_bronze
     description: 'Appointment-level oncology access source and mapping joins with only the columns needed downstream; no formatting or filtering.'

@@ -30,7 +30,7 @@ demographics as (
 
 ethnic_background as (
     select *
-    from {{ source('oncology', 'mapping_ethnic_background') }}
+    from {{ ref('mapping_ethnic_background') }}
 ),
 
 los_exclusions as (
