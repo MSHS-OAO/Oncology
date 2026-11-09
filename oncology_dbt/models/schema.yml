@@ -18,7 +18,7 @@ models:
     description: 'Final oncology access base table converted from ONCOLOGY_ACCESS_BASE.sql.'
     columns:
       - name: pat_enc_csn_id
-        description: 'Unique appointment encounter identifier defining the grain of this model.'
+        description: 'Encounter identifier carried from the source; this model deduplicates by MRN, appointment timestamp, appointment type, provider ID, and appointment status.'
         data_tests:
           - unique
           - not_null
@@ -27,7 +27,7 @@ models:
     description: 'Final oncology access table downstream of oncology_access_silver with active MRN mapping and department/provider inclusion rules.'
     columns:
       - name: pat_enc_csn_id
-        description: 'Unique appointment encounter identifier defining the grain of this model.'
+        description: 'Encounter identifier carried from the access base; uniqueness and non-nullness are checked at build time.'
         data_tests:
           - unique
           - not_null
