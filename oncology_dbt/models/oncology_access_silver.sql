@@ -36,22 +36,26 @@ with formatted_access as (
         primary_dx_code,
         referring_prov_id,
         pat_id,
-        excluded_los_code,
+        los_code,
 
         cast(extract(year from appt_dttm) as string) as appt_year,
-        extract(dayofweek from appt_dttm) as appt_day,
-        extract(month from appt_dttm) as appt_month,
-        cast(extract(year from appt_dttm) as string)
-            || '-'
-            || cast(extract(month from appt_dttm) as string)
-            as appt_month_year,
+        upper(date_format(appt_dttm, 'E')) as appt_day,
+        upper(date_format(appt_dttm, 'MMM')) as appt_month,
+        date_format(appt_dttm, 'yyyy-MM') as appt_month_year,
         to_date(appt_dttm) as appt_date_year,
-        datediff(appt_dttm, appt_made_dttm) as wait_time,
+        (
+            datediff(to_date(appt_dttm), to_date(appt_made_dttm))
+            + (
+                hour(appt_dttm) * 3600
+                + minute(appt_dttm) * 60
+                + second(appt_dttm)
+                - hour(appt_made_dttm) * 3600
+                - minute(appt_made_dttm) * 60
+                - second(appt_made_dttm)
+            ) / 86400.0
+        ) as wait_time,
         to_date(appt_made_dttm) as appt_made_date_year,
-        cast(extract(year from appt_made_dttm) as string)
-            || '-'
-            || cast(extract(month from appt_made_dttm) as string)
-            as appt_made_month_year,
+        date_format(appt_made_dttm, 'yyyy-MM') as appt_made_month_year,
 
         regexp_substr(prc_name, 'NEW') as new_pt_scheduled,
         regexp_substr(los_name, 'NEW') as new_pt_arrived_raw,
@@ -59,10 +63,13 @@ with formatted_access as (
         department_name as dept_name_dnu,
         department_id,
         site,
+        department_type,
 
+        mapped_prc_name as prc_name,
         associationlista,
         associationlistb,
         associationlistt,
+        associationlistr,
 
         disease_group,
         disease_group_b as disease_group_detail,
@@ -108,8 +115,8 @@ with formatted_access as (
     from {{ ref('oncology_access_bronze') }}
     where excluded_los_code is null
       and (
-          to_date(contact_date) between to_date('{{ var("oncology_access_start_date", "2019-01-01") }}', 'yyyy-MM-dd') and current_date()
-          or to_date(appt_made_dttm) between to_date('{{ var("oncology_access_start_date", "2019-01-01") }}', 'yyyy-MM-dd') and current_date()
+          to_date(contact_date) between to_date('{{ var("oncology_access_start_date", "2019-01-01") }}', 'yyyy-MM-dd') and date_sub(current_date(), 1)
+          or to_date(appt_made_dttm) between to_date('{{ var("oncology_access_start_date", "2019-01-01") }}', 'yyyy-MM-dd') and date_sub(current_date(), 1)
       )
 ),
 
@@ -129,11 +136,37 @@ final as (
             else deduplicated_access.dept_name_dnu
         end as department_name,
 
-        deduplicated_access.*,
+        deduplicated_access.* except (
+            ethnicity_grouper,
+            race,
+            race_grouper,
+            race_grouper_detail,
+            mychart_status_grouper,
+            referring_provider,
+            dx_grouper,
+            dx_detail,
+            new_pt_scheduled
+        ),
+
+        case
+            when deduplicated_access.ethnic_background is null then 'BLANK/UNKNOWN'
+            else deduplicated_access.ethnicity_grouper
+        end as ethnicity_grouper,
+        coalesce(deduplicated_access.race, 'BLANK') as race,
+        coalesce(deduplicated_access.race_grouper, 'BLANK/UNKNOWN') as race_grouper,
+        coalesce(deduplicated_access.race_grouper_detail, 'BLANK/UNKNOWN') as race_grouper_detail,
+        case
+            when deduplicated_access.mychart_status is null then 'Not Activated'
+            else deduplicated_access.mychart_status_grouper
+        end as mychart_status_grouper,
+        coalesce(deduplicated_access.referring_provider, 'Unknown/Blank') as referring_provider,
+        coalesce(deduplicated_access.dx_grouper, 'Non-Cancer') as dx_grouper,
+        coalesce(deduplicated_access.dx_detail, 'Non-Cancer') as dx_detail,
+        coalesce(deduplicated_access.new_pt_scheduled, 'ESTABLISHED') as new_pt_scheduled,
 
         nvl(deduplicated_access.new_pt_arrived_raw, 'ESTABLISHED') as new_pt_arrived,
 
-        count(*) over () as total_rows
+        count(*) over () as totalRows
 
     from deduplicated_access
 )

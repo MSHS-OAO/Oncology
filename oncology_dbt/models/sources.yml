@@ -61,6 +61,17 @@ sources:
             data_tests:
               - unique
   
+      - name: mapping_holidays
+        description: 'Holiday calendar used by the Tableau access output'
+        columns:
+          - name: dates
+            data_tests:
+              - unique
+              - not_null
+          - name: holiday
+            data_tests:
+              - not_null
+
   - name: msx_clarity
     description: 'source for all MSX Clarity tables owned by DTP'
     database: datahub_dev_bronze

@@ -98,10 +98,13 @@ final as (
         department.department_name,
         department.department_id,
         department.site,
+        department.department_type,
 
+        procedure.prc_name as mapped_prc_name,
         procedure.associationlista,
         procedure.associationlistb,
         procedure.associationlistt,
+        procedure.associationlistr,
 
         disease.disease_group,
         disease.disease_group_b,
