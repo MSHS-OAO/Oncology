@@ -166,7 +166,7 @@ final as (
 
         nvl(deduplicated_access.new_pt_arrived_raw, 'ESTABLISHED') as new_pt_arrived,
 
-        count(*) over () as total_rows
+        count(*) over () as totalRows
 
     from deduplicated_access
 )
