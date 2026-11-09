@@ -34,3 +34,10 @@ models:
 
   - name: oncology_filters_updated
     description: 'Distinct filter combinations from oncology_access_silver matching the legacy Tableau filters output.'
+
+  - name: oncology_active_treatment_mrn_tableau
+    description: 'Distinct MRNs with any arrived treatment appointment in the Tableau access base; matches ONCOLOGY_ACTIVE_TREATMENT_MRN_TABLEAU without a rolling date filter.'
+    columns:
+      - name: mrn
+        data_tests:
+          - unique
