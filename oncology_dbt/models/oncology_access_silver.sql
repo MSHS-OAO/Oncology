@@ -110,8 +110,8 @@ with formatted_access as (
     from {{ ref('oncology_access_bronze') }}
     where excluded_los_code is null
       and (
-          to_date(contact_date) between to_date('{{ var("oncology_access_start_date", "2019-01-01") }}', 'yyyy-MM-dd') and current_date()
-          or to_date(appt_made_dttm) between to_date('{{ var("oncology_access_start_date", "2019-01-01") }}', 'yyyy-MM-dd') and current_date()
+          to_date(contact_date) between to_date('{{ var("oncology_access_start_date", "2019-01-01") }}', 'yyyy-MM-dd') and date_sub(current_date(), 1)
+          or to_date(appt_made_dttm) between to_date('{{ var("oncology_access_start_date", "2019-01-01") }}', 'yyyy-MM-dd') and date_sub(current_date(), 1)
       )
 ),
 
