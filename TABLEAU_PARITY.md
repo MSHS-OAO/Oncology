@@ -1,6 +1,6 @@
 # Tableau ETL parity review
 
-Checked 2026-11-09. Legacy comparator: [`Oncology_Data_Pull/main/tableau/data_pull_tableau.Rmd`](https://github.com/MSHS-OAO/Oncology_Data_Pull/blob/main/tableau/data_pull_tableau.Rmd). Replacement: this repository's `greg` branch, based on `development`. The legacy Tableau script, rather than its root `main.Rmd`, defines the dashboard tables.
+Checked 2026-11-09. Legacy comparator: [`Oncology_Data_Pull/main/tableau/data_pull_tableau.Rmd`](https://github.com/MSHS-OAO/Oncology_Data_Pull/blob/main/tableau/data_pull_tableau.Rmd). Replacement: this repository's `greg` branch, based on `development`. The `tableau/manifest.json` names `data_pull_tableau.Rmd` as its primary Rmd. The legacy Tableau script, rather than the repository's root `main.Rmd`, defines the dashboard tables.
 
 ## Code review
 
@@ -20,6 +20,8 @@ User decision, 2026-11-09: keep the Databricks `PAT_ENC_CSN_ID` output as text. 
 ## Open parity checks
 
 1. **Mapping versions.** The user's Oracle audit found duplicate join keys in `ONCOLOGY_DEPARTMENT_GROUPINGS_TABLEAU`, `ONCOLOGY_PRC_GROUPINGS_TABLEAU`, `ONCOLOGY_DISEASE_GROUPINGS_TABLEAU`, and `ONCOLOGY_ETHNICITY_GROUPER_TABLEAU`. User-provided full-table counts show 195 department rows / 148 distinct IDs in both systems (47 excess rows); 1,398 procedure rows / 1,390 distinct names in Oracle (8 excess) versus 1,398 / 1,388 in Databricks (10 excess); and 121 unique holiday dates in both. Counts for the disease and ethnicity duplicates and the corresponding Databricks mappings are pending. Compare duplicate keys and Tableau grouping values before choosing a current-row or effective-date rule. The dbt source `unique` tests for these four mappings are selected and will fail wherever duplicate keys remain.
+
+   The Tableau folder also contains [`pcr_production_population.R`](https://github.com/MSHS-OAO/Oncology_Data_Pull/blob/main/tableau/pcr_production_population.R), which reads a procedure-mapping spreadsheet and calls `dbWriteTable(..., append = TRUE)` on `ONCOLOGY_PRC_GROUPINGS_TABLEAU`. It has no deduplication guard and supplies `PRC_NAME` plus `ASSOCIATIONLISTA`, `ASSOCIATIONLISTB`, and `ASSOCIATIONLISTT`; it does not supply `ASSOCIATIONLISTR`. Whether or when this helper ran is unverified, so it is possible provenance rather than an established cause of the observed duplicates.
 2. **`ACTIVE_MRN`.** Legacy gold joins Oracle view `OAO_PRODUCTION.ONCOLOGY_ACTIVE_MRN_MAPPING_TABLEAU`. Oracle metadata shows that view depends on `ONCOLOGY_ACCESS_BASE_TABLEAU`, but its SQL definition has not been reviewed. The dbt `mapping_active_mrn` model uses arrived treatment appointments in a rolling three-month window. Do not assume these rules match.
 3. **Ethnic background.** Oracle `ONCOLOGY_ETHNIC_BACKGROUND_PULL` is a view depending on `ETHNIC_BACKGROUND` and `ZC_ETHNIC_BKGRND`. dbt `mapping_ethnic_background` rebuilds values from Databricks copies of those tables. The Oracle aggregation definition and value parity are unverified.
 4. **Source freshness.** `datahub_dev_bronze.datahub_clarity.mv_dm_patient_access` is a stored Databricks copy of the Oracle access source; its row scope and refresh status are unverified. Compare source counts and latest source dates for the same run cutoff before claiming output parity.
