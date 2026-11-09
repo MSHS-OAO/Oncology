@@ -36,7 +36,7 @@ with formatted_access as (
         primary_dx_code,
         referring_prov_id,
         pat_id,
-        excluded_los_code,
+        los_code,
 
         cast(extract(year from appt_dttm) as string) as appt_year,
         upper(date_format(appt_dttm, 'E')) as appt_day,
@@ -65,6 +65,7 @@ with formatted_access as (
         site,
         department_type,
 
+        mapped_prc_name as prc_name,
         associationlista,
         associationlistb,
         associationlistt,

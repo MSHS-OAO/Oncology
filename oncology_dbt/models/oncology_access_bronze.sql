@@ -100,6 +100,7 @@ final as (
         department.site,
         department.department_type,
 
+        procedure.prc_name as mapped_prc_name,
         procedure.associationlista,
         procedure.associationlistb,
         procedure.associationlistt,
