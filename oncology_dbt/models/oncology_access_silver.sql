@@ -39,19 +39,23 @@ with formatted_access as (
         excluded_los_code,
 
         cast(extract(year from appt_dttm) as string) as appt_year,
-        extract(dayofweek from appt_dttm) as appt_day,
-        extract(month from appt_dttm) as appt_month,
-        cast(extract(year from appt_dttm) as string)
-            || '-'
-            || cast(extract(month from appt_dttm) as string)
-            as appt_month_year,
+        upper(date_format(appt_dttm, 'E')) as appt_day,
+        upper(date_format(appt_dttm, 'MMM')) as appt_month,
+        date_format(appt_dttm, 'yyyy-MM') as appt_month_year,
         to_date(appt_dttm) as appt_date_year,
-        datediff(appt_dttm, appt_made_dttm) as wait_time,
+        (
+            datediff(to_date(appt_dttm), to_date(appt_made_dttm))
+            + (
+                hour(appt_dttm) * 3600
+                + minute(appt_dttm) * 60
+                + second(appt_dttm)
+                - hour(appt_made_dttm) * 3600
+                - minute(appt_made_dttm) * 60
+                - second(appt_made_dttm)
+            ) / 86400.0
+        ) as wait_time,
         to_date(appt_made_dttm) as appt_made_date_year,
-        cast(extract(year from appt_made_dttm) as string)
-            || '-'
-            || cast(extract(month from appt_made_dttm) as string)
-            as appt_made_month_year,
+        date_format(appt_made_dttm, 'yyyy-MM') as appt_made_month_year,
 
         regexp_substr(prc_name, 'NEW') as new_pt_scheduled,
         regexp_substr(los_name, 'NEW') as new_pt_arrived_raw,
