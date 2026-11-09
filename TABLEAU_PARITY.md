@@ -11,6 +11,8 @@ Checked 2026-11-09. Legacy comparator: [`Oncology_Data_Pull/main/tableau/data_pu
 | Arrived treatment MRNs | `oncology_active_treatment_mrn_tableau` selects distinct MRNs from all arrived treatment rows in silver, with no rolling window. | Code path reviewed; output data not compared. |
 | Dashboard output | `oncology_access_gold` applies the department/provider exception, joins `ACTIVE_MRN`, and adds `HOLIDAY` by appointment date. | Code path reviewed; `ACTIVE_MRN` rule and output data not verified. |
 
+A static comparison of the legacy Tableau access-base `SELECT` and the silver model found the same set of 74 output column names, including the fields added by deduplication and the final projection. Gold adds `ACTIVE_MRN` and `HOLIDAY`, as the legacy dashboard output does. This checks names only; column order, types, and values still need runtime validation.
+
 ## Open parity checks
 
 1. **Mapping versions.** User-provided full-table counts show 195 department rows / 148 distinct IDs in both systems (47 excess rows); 1,398 procedure rows / 1,390 distinct names in Oracle (8 excess) versus 1,398 / 1,388 in Databricks (10 excess); and 121 unique holiday dates in both. Compare the duplicate keys and grouping values before choosing a current-row or effective-date rule. The dbt source `unique` tests for `DEPARTMENT_ID` and `PRC_NAME` are selected and will fail against those counts unless the mappings change.
