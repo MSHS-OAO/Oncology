@@ -135,7 +135,33 @@ final as (
             else deduplicated_access.dept_name_dnu
         end as department_name,
 
-        deduplicated_access.*,
+        deduplicated_access.* except (
+            ethnicity_grouper,
+            race,
+            race_grouper,
+            race_grouper_detail,
+            mychart_status_grouper,
+            referring_provider,
+            dx_grouper,
+            dx_detail,
+            new_pt_scheduled
+        ),
+
+        case
+            when deduplicated_access.ethnic_background is null then 'BLANK/UNKNOWN'
+            else deduplicated_access.ethnicity_grouper
+        end as ethnicity_grouper,
+        coalesce(deduplicated_access.race, 'BLANK') as race,
+        coalesce(deduplicated_access.race_grouper, 'BLANK/UNKNOWN') as race_grouper,
+        coalesce(deduplicated_access.race_grouper_detail, 'BLANK/UNKNOWN') as race_grouper_detail,
+        case
+            when deduplicated_access.mychart_status is null then 'Not Activated'
+            else deduplicated_access.mychart_status_grouper
+        end as mychart_status_grouper,
+        coalesce(deduplicated_access.referring_provider, 'Unknown/Blank') as referring_provider,
+        coalesce(deduplicated_access.dx_grouper, 'Non-Cancer') as dx_grouper,
+        coalesce(deduplicated_access.dx_detail, 'Non-Cancer') as dx_detail,
+        coalesce(deduplicated_access.new_pt_scheduled, 'ESTABLISHED') as new_pt_scheduled,
 
         nvl(deduplicated_access.new_pt_arrived_raw, 'ESTABLISHED') as new_pt_arrived,
 
