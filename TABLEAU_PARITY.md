@@ -13,14 +13,17 @@ Checked 2026-11-09. Legacy comparator: [`Oncology_Data_Pull/main/tableau/data_pu
 
 A static comparison of the legacy Tableau access-base `SELECT` and the silver model found the same set of 74 output column names, including the fields added by deduplication and the final projection. Gold adds `ACTIVE_MRN` and `HOLIDAY`, as the legacy dashboard output does. This checks names only; column order, types, and values still need runtime validation.
 
+## Accepted type decision
+
+User decision, 2026-11-09: keep the Databricks `PAT_ENC_CSN_ID` output as text. Oracle selects a numeric `NUMBER(18,0)` source value, while the Databricks copy declares `decimal(38,18)` and silver converts it through `BIGINT` to string. This output-type difference is intentional.
+
 ## Open parity checks
 
 1. **Mapping versions.** User-provided full-table counts show 195 department rows / 148 distinct IDs in both systems (47 excess rows); 1,398 procedure rows / 1,390 distinct names in Oracle (8 excess) versus 1,398 / 1,388 in Databricks (10 excess); and 121 unique holiday dates in both. Compare the duplicate keys and grouping values before choosing a current-row or effective-date rule. The dbt source `unique` tests for `DEPARTMENT_ID` and `PRC_NAME` are selected and will fail against those counts unless the mappings change.
 2. **`ACTIVE_MRN`.** Legacy gold joins Oracle view `OAO_PRODUCTION.ONCOLOGY_ACTIVE_MRN_MAPPING_TABLEAU`. Oracle metadata shows that view depends on `ONCOLOGY_ACCESS_BASE_TABLEAU`, but its SQL definition has not been reviewed. The dbt `mapping_active_mrn` model uses arrived treatment appointments in a rolling three-month window. Do not assume these rules match.
 3. **Ethnic background.** Oracle `ONCOLOGY_ETHNIC_BACKGROUND_PULL` is a view depending on `ETHNIC_BACKGROUND` and `ZC_ETHNIC_BKGRND`. dbt `mapping_ethnic_background` rebuilds values from Databricks copies of those tables. The Oracle aggregation definition and value parity are unverified.
 4. **Source freshness.** `datahub_dev_bronze.datahub_clarity.mv_dm_patient_access` is a stored Databricks copy of the Oracle access source; its row scope and refresh status are unverified. Compare source counts and latest source dates for the same run cutoff before claiming output parity.
-5. **Encounter identifier type.** Oracle source `PAT_ENC_CSN_ID` is `NUMBER(18,0)`; the Databricks copy declares `decimal(38,18)` and silver converts it to string. Confirm the dashboard consumer's required output type before changing the cast.
-6. **Job branch.** The user-provided staging job YAML points to Git branch `staging`, so it does not run `greg` automatically. It writes dbt models to `oncology_staging`; the preceding notebook writes its mapping output to the shared `oncology` schema.
+5. **Job branch.** The user-provided staging job YAML points to Git branch `staging`, so it does not run `greg` automatically. It writes dbt models to `oncology_staging`; the preceding notebook writes its mapping output to the shared `oncology` schema.
 
 ## Aggregate output check
 
