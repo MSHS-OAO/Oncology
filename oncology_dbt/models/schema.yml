@@ -31,3 +31,6 @@ models:
         data_tests:
           - unique
           - not_null
+
+  - name: oncology_filters_updated
+    description: 'Distinct filter combinations from oncology_access_silver matching the legacy Tableau filters output.'

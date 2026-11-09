@@ -10,6 +10,11 @@ active_mrn as (
     from {{ ref('mapping_active_mrn') }}
 ),
 
+holidays as (
+    select dates, holiday
+    from {{ source('oncology', 'mapping_holidays') }}
+),
+
 final as (
     select
         access_base.*,
@@ -37,5 +42,9 @@ final as (
       and access_base.epic_provider_id = '184137'
 )
 
-select *
+select
+    final.*,
+    holidays.holiday
 from final
+left join holidays
+    on to_date(final.appt_dttm) = to_date(holidays.dates)
