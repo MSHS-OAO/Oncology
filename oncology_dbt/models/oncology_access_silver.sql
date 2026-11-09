@@ -59,10 +59,12 @@ with formatted_access as (
         department_name as dept_name_dnu,
         department_id,
         site,
+        department_type,
 
         associationlista,
         associationlistb,
         associationlistt,
+        associationlistr,
 
         disease_group,
         disease_group_b as disease_group_detail,
