@@ -7,9 +7,9 @@ Checked 2026-11-09. Legacy comparator: [`Oncology_Data_Pull/main/tableau/data_pu
 | Area | Current `greg` implementation | Verification status |
 | --- | --- | --- |
 | Access base | `oncology_access_bronze` joins the source and mappings; `oncology_access_silver` applies the legacy date window, LOS exclusion, visit-key deduplication, derived fields, and null fills. `LOS_CODE`, mapped `PRC_NAME`, `DEPARTMENT_TYPE`, `ASSOCIATIONLISTR`, and `totalRows` are carried through. | Code path reviewed; output data not compared. |
-| Tableau filters | `oncology_filters_updated` selects the legacy distinct filter columns from silver. | Code path reviewed; output data not compared. |
-| Arrived treatment MRNs | `oncology_active_treatment_mrn_tableau` selects distinct MRNs from all arrived treatment rows in silver, with no rolling window. | Code path reviewed; output data not compared. |
 | Dashboard output | `oncology_access_gold` applies the department/provider exception, joins `ACTIVE_MRN`, and adds `HOLIDAY` by appointment date. | Code path reviewed; `ACTIVE_MRN` rule and output data not verified. |
+
+The legacy script also creates `ONCOLOGY_FILTERS_UPDATED_TABLEAU` and `ONCOLOGY_ACTIVE_TREATMENT_MRN_TABLEAU`. The user excluded those side outputs from the replacement scope on 2026-11-09; neither feeds the legacy dashboard table, and no dbt model is retained for them.
 
 A static comparison of the legacy Tableau access-base `SELECT` and the silver model found the same set of 74 output column names, including the fields added by deduplication and the final projection. Gold adds `ACTIVE_MRN` and `HOLIDAY`, as the legacy dashboard output does. This checks names only; column order, types, and values still need runtime validation.
 
@@ -23,7 +23,7 @@ User decision, 2026-11-09: keep the Databricks `PAT_ENC_CSN_ID` output as text. 
 
    The Tableau folder also contains [`pcr_production_population.R`](https://github.com/MSHS-OAO/Oncology_Data_Pull/blob/main/tableau/pcr_production_population.R), which reads a procedure-mapping spreadsheet and calls `dbWriteTable(..., append = TRUE)` on `ONCOLOGY_PRC_GROUPINGS_TABLEAU`. It has no deduplication guard and supplies `PRC_NAME` plus `ASSOCIATIONLISTA`, `ASSOCIATIONLISTB`, and `ASSOCIATIONLISTT`; it does not supply `ASSOCIATIONLISTR`. Whether or when this helper ran is unverified, so it is possible provenance rather than an established cause of the observed duplicates.
 
-   The user's Oracle department duplicate export (2026-11-09) contains 92 rows across 45 duplicated `DEPARTMENT_ID` values: 43 IDs have two rows and two IDs have three rows, yielding 47 excess rows. Among these IDs, 43 have different combinations of `DEPARTMENT_NAME`, `DEPARTMENT_TYPE`, and `SITE` (41 differ in name, seven in site, none in type); two repeat the same mapping values. `DATE_ADDED` does not differ within any duplicate ID, so selecting the latest date cannot resolve them. This proves join fanout for appointments using those IDs, but the number of affected appointments and whether Databricks duplicates the same IDs remain unverified.
+   The user's Oracle department duplicate export (2026-11-09) contains 92 rows across 45 duplicated `DEPARTMENT_ID` values: 43 IDs have two rows and two IDs have three rows, yielding 47 excess rows. Among these IDs, 43 have different combinations of `DEPARTMENT_NAME`, `DEPARTMENT_TYPE`, and `SITE` (41 differ in name, seven in site, none in type); two repeat the same mapping values. `DATE_ADDED` does not differ within any duplicate ID, so selecting the latest date cannot resolve them. This creates intermediate join fanout for appointments using those IDs. The legacy `ROW_NUMBER()` partitions by source visit fields and keeps one row, so these department duplicates alone do not multiply rows in `ONCOLOGY_ACCESS_TABLEAU`. The tie ordering uses the same visit fields and cannot choose a consistent mapping row; department names and sites in the final table can vary. The number of affected appointments and whether Databricks duplicates the same IDs remain unverified.
 2. **`ACTIVE_MRN`.** Legacy gold joins Oracle view `OAO_PRODUCTION.ONCOLOGY_ACTIVE_MRN_MAPPING_TABLEAU`. Oracle metadata shows that view depends on `ONCOLOGY_ACCESS_BASE_TABLEAU`, but its SQL definition has not been reviewed. The dbt `mapping_active_mrn` model uses arrived treatment appointments in a rolling three-month window. Do not assume these rules match.
 3. **Ethnic background.** Oracle `ONCOLOGY_ETHNIC_BACKGROUND_PULL` is a view depending on `ETHNIC_BACKGROUND` and `ZC_ETHNIC_BKGRND`. dbt `mapping_ethnic_background` rebuilds values from Databricks copies of those tables. The Oracle aggregation definition and value parity are unverified.
 4. **Source freshness.** `datahub_dev_bronze.datahub_clarity.mv_dm_patient_access` is a stored Databricks copy of the Oracle access source; its row scope and refresh status are unverified. Compare source counts and latest source dates for the same run cutoff before claiming output parity.
@@ -61,26 +61,6 @@ SELECT COUNT(*) AS row_count,
        MIN(appt_dttm) AS first_appointment,
        MAX(appt_dttm) AS last_appointment
 FROM opsanalytics_adb_workspace01.oncology_staging.oncology_access_gold;
-```
-
-Check the other two Tableau outputs after the same rebuild:
-
-```sql
--- Oracle
-SELECT 'filters' AS output_name, COUNT(*) AS row_count
-FROM OAO_PRODUCTION.ONCOLOGY_FILTERS_UPDATED_TABLEAU
-UNION ALL
-SELECT 'active_treatment_mrn', COUNT(*)
-FROM OAO_PRODUCTION.ONCOLOGY_ACTIVE_TREATMENT_MRN_TABLEAU;
-```
-
-```sql
--- Databricks staging
-SELECT 'filters' AS output_name, COUNT(*) AS row_count
-FROM opsanalytics_adb_workspace01.oncology_staging.oncology_filters_updated
-UNION ALL
-SELECT 'active_treatment_mrn', COUNT(*)
-FROM opsanalytics_adb_workspace01.oncology_staging.oncology_active_treatment_mrn_tableau;
 ```
 
 Matching totals are a first check, not proof of row or value parity. Review differences by appointment month and mapping status before accepting the replacement.
